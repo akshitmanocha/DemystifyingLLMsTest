@@ -145,6 +145,13 @@ class InferenceEngine:
         self._prepare_model()
         self._failed = False
 
+        if tokenizer is None:
+            try:
+                from tokenizer.bpe import BPETokenizer
+                tokenizer = BPETokenizer()
+            except Exception:
+                tokenizer = None
+
         # Tokenize prompt
         if tokenizer is not None and hasattr(tokenizer, "encode"):
             try:
@@ -162,12 +169,13 @@ class InferenceEngine:
         )
 
         # Decode generated tokens
-        if not getattr(self, "_failed", False) and tokenizer is not None and hasattr(tokenizer, "decode"):
+        if tokenizer is not None and hasattr(tokenizer, "decode"):
             try:
                 return tokenizer.decode(output_ids)
             except Exception:
                 pass
 
-        # Fallback decode: append dummy synthesized continuation
-        continuation = " [generated continuation tokens]"
-        return prompt + continuation
+        try:
+            return "".join(chr(c) for c in output_ids)
+        except Exception:
+            return prompt
